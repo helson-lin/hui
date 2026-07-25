@@ -224,15 +224,24 @@ await convertMany(jobs, {
 })
 ```
 
-## Agent skill
+## Agent skill (for any coding AI)
 
-For AI agents (Grok / Claude / Codex, etc.), load the Hui skill:
+Ship a [SKILL.md](skills/hui/SKILL.md) so **users** can install Hui into their coding agents (Claude Code, Cursor, Codex, Copilot, Windsurf, Continue, Grok, and others via the [skills](https://skills.sh/) ecosystem).
 
-- In this repo: [`.grok/skills/hui/SKILL.md`](.grok/skills/hui/SKILL.md)
-- Slash (Grok): `/hui`
-- Copy into a user skill dir if needed: `~/.agents/skills/hui/SKILL.md`
+```bash
+# Install skill globally for all supported agents
+npx skills add helson-lin/hui -g -y
 
-The skill documents binary resolution, convert/batch flags, themes, Chrome requirements, and anti-patterns so agents shell out to `hui` instead of re-implementing export.
+# Or project-only
+npx skills add helson-lin/hui -y
+
+# List without installing
+npx skills add helson-lin/hui -l
+```
+
+Also install the CLI (brew / source) so the agent can run `hui`. The skill teaches convert/batch flags, themes, Chrome requirements, and anti-patterns so the agent shells out to `hui` instead of re-implementing export.
+
+Canonical skill path in this repo: [`skills/hui/SKILL.md`](skills/hui/SKILL.md).
 
 ## Stack
 

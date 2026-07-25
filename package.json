@@ -19,7 +19,8 @@
     "dist",
     "README.md",
     "README_ZH.md",
-    "homebrew"
+    "homebrew",
+    "skills"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

@@ -224,15 +224,24 @@ await convertMany(jobs, {
 })
 ```
 
-## Agent Skill
+## Agent Skill（面向用户分发）
 
-方便 AI（Grok / Claude / Codex 等）调用 Hui：
+通过 [skills](https://skills.sh/) 生态，把 Hui 装进用户自己的编码 Agent（Claude Code、Cursor、Codex、Copilot、Windsurf、Continue、Grok 等），不只绑定某一家 AI：
 
-- 本仓库：[`.grok/skills/hui/SKILL.md`](.grok/skills/hui/SKILL.md)
-- Grok 斜杠：`/hui`
-- 可复制到用户技能目录：`~/.agents/skills/hui/SKILL.md`
+```bash
+# 全局安装到本机已支持的 Agent
+npx skills add helson-lin/hui -g -y
 
-Skill 内含命令解析、单文件/批量转换、主题、Chrome 依赖与反模式，让 Agent 直接调用 `hui`，而不是自己重写导出逻辑。
+# 仅当前项目
+npx skills add helson-lin/hui -y
+
+# 只查看、不安装
+npx skills add helson-lin/hui -l
+```
+
+同时安装 CLI（brew / 源码），Agent 才能执行 `hui`。Skill 说明转换/批量参数、主题、Chrome 依赖与反模式，让 Agent 直接调用 `hui`，而不是重写导出逻辑。
+
+仓库内规范路径：[`skills/hui/SKILL.md`](skills/hui/SKILL.md)。
 
 ## 技术栈
 
