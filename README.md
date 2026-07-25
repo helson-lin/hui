@@ -14,9 +14,21 @@ brew tap helson-lin/tap
 # 已有 tap 时：强制同步到远程 main（不要 untap，以免卸掉 doke/of）
 git -C "$(brew --repo helson-lin/tap)" fetch origin
 git -C "$(brew --repo helson-lin/tap)" reset --hard origin/main
-ls "$(brew --repo helson-lin/tap)/hui.rb"   # 应能看到此文件
 
-brew install helson-lin/tap/hui
+brew reinstall helson-lin/tap/hui
+hui --version
+```
+
+若出现 `zsh: killed`（macOS 杀掉未签名的 arm64 二进制）：
+
+```bash
+# 方案 A：重装（formula 会在 install 时 ad-hoc codesign）
+git -C "$(brew --repo helson-lin/tap)" pull
+brew reinstall helson-lin/tap/hui
+
+# 方案 B：手动签名当前二进制
+codesign --force --sign - "$(brew --prefix)/bin/hui"
+xattr -cr "$(brew --prefix)/bin/hui"
 hui --version
 ```
 

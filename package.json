@@ -1,6 +1,6 @@
 {
   "name": "hui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "徽 CLI — convert Markdown to PNG / PDF / HTML with multi-theme support",
   "type": "module",
   "bin": {

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Build multi-platform release binaries + tar.gz for GitHub Release / Homebrew.
 # Usage: bash build.sh [vX.Y.Z]
+#
+# Note: darwin arm64 binaries MUST be codesigned on macOS, otherwise the kernel
+# SIGKILLs them at launch ("zsh: killed"). Prefer CI matrix (macos-14) for
+# official releases; this script codesigns when running on Darwin.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -15,7 +19,6 @@ if [[ -z "$TAG" ]]; then
   fi
 fi
 
-# strip leading v for package version inject; keep TAG with v for artifact names
 VERSION="${TAG#v}"
 export HUI_VERSION="$VERSION"
 
@@ -37,8 +40,6 @@ npm run build
 echo "==> Bundle CLI (esbuild → dist/bundle.cjs)"
 node scripts/bundle.mjs
 
-# pkg targets: node20 + os + arch
-# Artifact naming mirrors doke: hui-<tag>-darwin-arm64.tar.gz
 declare -a TARGETS=(
   "node20-macos-arm64|darwin-arm64|hui"
   "node20-macos-x64|darwin-amd64|hui"
@@ -60,6 +61,15 @@ for entry in "${TARGETS[@]}"; do
     --targets "$pkg_target" \
     --output "$out_dir/${bin_name}" \
     --compress GZip
+
+  # Ad-hoc codesign on macOS hosts (required for arm64)
+  if [[ "$platform" == darwin-* ]] && command -v codesign >/dev/null 2>&1; then
+    echo "    codesign (ad-hoc) $bin_name"
+    codesign --force --sign - "$out_dir/${bin_name}"
+  elif [[ "$platform" == darwin-* ]]; then
+    echo "    WARNING: not on macOS — darwin binary will be UNSIGNED"
+    echo "    macOS users will see 'zsh: killed' unless brew formula re-signs on install"
+  fi
 
   archive="release/hui-${TAG}-${platform}"
   if [[ "$platform" == windows-* ]]; then

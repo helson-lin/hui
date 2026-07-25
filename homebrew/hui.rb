@@ -1,6 +1,5 @@
-# Homebrew formula for helson-lin/homebrew-tap
-# MUST live at tap root as hui.rb only (same as doke.rb / of.rb).
-# Do NOT also put under Formula/ — duplicate class breaks brew discovery.
+# Homebrew formula for helson-lin/homebrew-tap (root: hui.rb only, like doke/of)
+# CI updates version / url / sha256 on each v*.*.* tag release.
 class Hui < Formula
   desc "Markdown to PNG/PDF/HTML converter with multi-theme support"
   homepage "https://github.com/helson-lin/hui"
@@ -18,6 +17,12 @@ class Hui < Formula
 
   def install
     bin.install "hui"
+    # pkg binaries built on Linux lack a valid macOS code signature.
+    # Unsigned arm64 executables are SIGKILL'd by the kernel (zsh: killed).
+    return unless OS.mac?
+
+    system "xattr", "-cr", bin/"hui"
+    system "codesign", "--force", "--sign", "-", bin/"hui"
   end
 
   def caveats
@@ -27,6 +32,10 @@ class Hui < Formula
       PNG / PDF need Google Chrome or Chromium installed on the system.
       Optional override:
         export HUI_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+      If you still see "zsh: killed", re-sign the binary:
+        codesign --force --sign - "$(brew --prefix)/bin/hui"
+        xattr -cr "$(brew --prefix)/bin/hui"
     EOS
   end
 

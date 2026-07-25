@@ -1,6 +1,6 @@
 name: Release
 
-# Publish multi-platform binaries + update Homebrew tap on version tags
+# Multi-platform binaries + Homebrew tap update on version tags
 on:
   push:
     tags:
@@ -8,31 +8,29 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build as (e.g. v1.0.0). Creates release for that name.'
+        description: 'Tag to build as (e.g. v1.0.1)'
         required: true
-        default: 'v1.0.0'
+        default: 'v1.0.1'
 
 permissions:
   contents: write
 
+env:
+  NODE_VERSION: '20'
+
 jobs:
-  build:
+  # ── Linux / Windows: pkg on Ubuntu ──────────────────────────────────
+  build-linux-win:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Extract tag name
-        id: tag_name
+      - name: Resolve tag
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "TAG=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
@@ -40,10 +38,132 @@ jobs:
             echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
           fi
 
-      - name: Build binaries
-        run: bash build.sh "${{ env.TAG }}"
+      - name: Install & bundle
+        run: |
+          npm ci
+          npm run build
+          HUI_VERSION="${TAG#v}" node scripts/bundle.mjs
 
-      - name: Release
+      - name: Package linux + windows
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          declare -a TARGETS=(
+            "node20-linux-x64|linux-amd64|hui"
+            "node20-linux-arm64|linux-arm64|hui"
+            "node20-win-x64|windows-amd64|hui.exe"
+          )
+          for entry in "${TARGETS[@]}"; do
+            IFS='|' read -r pkg_target platform bin_name <<<"$entry"
+            out_dir="release/staging-${platform}"
+            mkdir -p "$out_dir"
+            npx --yes @yao-pkg/pkg@5.16.1 dist/bundle.cjs \
+              --config package.json \
+              --targets "$pkg_target" \
+              --output "$out_dir/${bin_name}" \
+              --compress GZip
+            if [[ "$platform" == windows-* ]]; then
+              ( cd "$out_dir" && zip -q "../hui-${TAG}-${platform}.zip" "$bin_name" )
+            else
+              tar -czf "release/hui-${TAG}-${platform}.tar.gz" -C "$out_dir" "$bin_name"
+            fi
+            rm -rf "$out_dir"
+          done
+          ls -lh release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-win
+          path: release/*
+          if-no-files-found: error
+
+  # ── macOS: pkg + ad-hoc codesign (required for arm64; else zsh: killed) ──
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Resolve tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install & bundle
+        run: |
+          npm ci
+          npm run build
+          HUI_VERSION="${TAG#v}" node scripts/bundle.mjs
+
+      - name: Package darwin arm64 + amd64 (codesign)
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          declare -a TARGETS=(
+            "node20-macos-arm64|darwin-arm64|hui"
+            "node20-macos-x64|darwin-amd64|hui"
+          )
+          for entry in "${TARGETS[@]}"; do
+            IFS='|' read -r pkg_target platform bin_name <<<"$entry"
+            out_dir="release/staging-${platform}"
+            mkdir -p "$out_dir"
+            npx --yes @yao-pkg/pkg@5.16.1 dist/bundle.cjs \
+              --config package.json \
+              --targets "$pkg_target" \
+              --output "$out_dir/${bin_name}" \
+              --compress GZip
+            # Ad-hoc sign so macOS does not SIGKILL on launch
+            codesign --force --sign - "$out_dir/${bin_name}"
+            codesign --verify --verbose "$out_dir/${bin_name}" || true
+            tar -czf "release/hui-${TAG}-${platform}.tar.gz" -C "$out_dir" "$bin_name"
+            rm -rf "$out_dir"
+          done
+          ls -lh release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: release/*
+          if-no-files-found: error
+
+  # ── Publish GitHub Release + update Homebrew tap ────────────────────
+  release:
+    needs: [build-linux-win, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble release/
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          find artifacts -type f \( -name 'hui-*.tar.gz' -o -name 'hui-*.zip' \) -exec cp {} release/ \;
+          cd release
+          sha256sum hui-${TAG}-*.tar.gz hui-${TAG}-*.zip > SHA256SUMS
+          ls -lh
+          cat SHA256SUMS
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
@@ -54,12 +174,10 @@ jobs:
             release/SHA256SUMS
           generate_release_notes: true
         env:
-          # Prefer PAT (cross-repo homebrew); fall back to job token for same-repo release
           GITHUB_TOKEN: ${{ secrets.TOKEN != '' && secrets.TOKEN || github.token }}
 
       - name: Update Homebrew Formula
         env:
-          # PAT with repo scope for {owner}/homebrew-tap (same as doke)
           TOKEN: ${{ secrets.TOKEN }}
           TAG: ${{ env.TAG }}
         run: |
@@ -79,32 +197,40 @@ jobs:
           git clone "https://github.com/${TAP_REPO}.git" homebrew-tap
           cd homebrew-tap
 
-          ls -l ../release
-
-          SHA256_ARM=$(shasum -a 256 "../release/hui-${TAG}-darwin-arm64.tar.gz" | awk '{print $1}')
-          SHA256_INTEL=$(shasum -a 256 "../release/hui-${TAG}-darwin-amd64.tar.gz" | awk '{print $1}')
+          SHA256_ARM=$(sha256sum "../release/hui-${TAG}-darwin-arm64.tar.gz" | awk '{print $1}')
+          SHA256_INTEL=$(sha256sum "../release/hui-${TAG}-darwin-amd64.tar.gz" | awk '{print $1}')
           echo "ARM sha256:   $SHA256_ARM"
           echo "Intel sha256: $SHA256_INTEL"
 
-          # Root-level only — same layout as doke.rb / of.rb.
-          # Do NOT also write Formula/hui.rb (duplicate class breaks discovery).
+          # Root-level only (same as doke/of). Never also write Formula/hui.rb.
           FORMULA="${FORMULA_NAME}.rb"
           if [[ ! -f "$FORMULA" ]]; then
-            echo "Seeding ${FORMULA} from template."
             cp "../homebrew/hui.rb" "$FORMULA"
           fi
-          # Remove accidental Formula/ duplicate from older CI
           if [[ -f "Formula/${FORMULA_NAME}.rb" ]]; then
             git rm -f "Formula/${FORMULA_NAME}.rb" 2>/dev/null || rm -f "Formula/${FORMULA_NAME}.rb"
             rmdir Formula 2>/dev/null || true
           fi
 
+          # Ensure install block has codesign (idempotent via template replace of version/url/sha)
           sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
           sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
           sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
           sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
           sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
           sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
+
+          # Ensure codesign snippet exists in formula (for older seeded files)
+          if ! grep -q 'codesign' "$FORMULA"; then
+            echo "Injecting codesign into install block"
+            # Prefer re-seeding from template then re-applying version/url/sha
+            cp "../homebrew/hui.rb" "$FORMULA"
+            sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
+            sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
+            sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
+            sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
+            sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
+          fi
 
           git config user.name "helsonlin"
           git config user.email "helsonlin@163.com"
