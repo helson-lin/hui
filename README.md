@@ -10,16 +10,8 @@
 
 ```bash
 brew tap helson-lin/tap
-brew update
-brew install helson-lin/tap/hui
-# 或：brew install hui
-```
-
-若提示找不到 formula，先刷新 tap：
-
-```bash
-brew untap helson-lin/tap
-brew tap helson-lin/tap
+# 已有 tap 时强制拉最新 formula（无需 untap）
+git -C "$(brew --repo helson-lin/tap)" pull
 brew install helson-lin/tap/hui
 ```
 

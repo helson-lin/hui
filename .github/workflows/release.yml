@@ -86,37 +86,26 @@ jobs:
           echo "ARM sha256:   $SHA256_ARM"
           echo "Intel sha256: $SHA256_INTEL"
 
-          # Homebrew expects formulas under Formula/ (not repo root)
+          # Keep both layouts: root (same as doke/of) + Formula/ (modern brew)
           mkdir -p Formula
-          FORMULA="Formula/${FORMULA_NAME}.rb"
-          # migrate legacy root-level formula if present
-          if [[ ! -f "$FORMULA" && -f "${FORMULA_NAME}.rb" ]]; then
-            mv "${FORMULA_NAME}.rb" "$FORMULA"
-          fi
-          if [[ ! -f "$FORMULA" ]]; then
-            echo "Formula ${FORMULA} missing in tap; seeding from template."
-            cp "../homebrew/hui.rb" "$FORMULA"
-          fi
+          FORMULAS=("${FORMULA_NAME}.rb" "Formula/${FORMULA_NAME}.rb")
+          for FORMULA in "${FORMULAS[@]}"; do
+            if [[ ! -f "$FORMULA" ]]; then
+              echo "Seeding ${FORMULA} from template."
+              cp "../homebrew/hui.rb" "$FORMULA"
+            fi
 
-          # Update version
-          sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
-
-          # Update download URLs (darwin arm + intel)
-          sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
-          sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
-
-          # Replace sha256 in order: first ARM, then Intel (same pattern as doke)
-          sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
-          sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
-
-          # Normalize homepage / release host to this repository
-          sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
+            sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
+            sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
+            sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
+            sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
+            sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
+            sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
+          done
 
           git config user.name "helsonlin"
           git config user.email "helsonlin@163.com"
-          git add "$FORMULA"
-          # clean up legacy root formula if any leftovers
-          git rm -f "${FORMULA_NAME}.rb" 2>/dev/null || true
+          git add "${FORMULAS[@]}"
           if git diff --cached --quiet; then
             echo "No formula changes."
             exit 0
