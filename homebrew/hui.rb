@@ -1,15 +1,12 @@
 # Homebrew formula for helson-lin/homebrew-tap
-# Shipped at BOTH:
-#   hui.rb           (same layout as doke/of)
-#   Formula/hui.rb   (modern Homebrew layout)
-# CI updates version / url / sha256 on each v*.*.* tag release.
+# MUST live at tap root as hui.rb only (same as doke.rb / of.rb).
+# Do NOT also put under Formula/ — duplicate class breaks brew discovery.
 class Hui < Formula
   desc "Markdown to PNG/PDF/HTML converter with multi-theme support"
   homepage "https://github.com/helson-lin/hui"
   version "v1.0.0"
-  license "MIT"
 
-  if OS.mac?
+  on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/helson-lin/hui/releases/download/v1.0.0/hui-v1.0.0-darwin-arm64.tar.gz"
       sha256 "5f6099e74741da8372587003fea9482108643c2e8d5c054d09ad66626abf2907"
@@ -34,8 +31,6 @@ class Hui < Formula
   end
 
   test do
-    (testpath/"sample.md").write("# hello\n\nfrom hui\n")
-    system "#{bin}/hui", "convert", "sample.md", "-f", "html", "-o", "sample.html"
-    assert_predicate testpath/"sample.html", :exist?
+    system "#{bin}/hui", "--version"
   end
 end

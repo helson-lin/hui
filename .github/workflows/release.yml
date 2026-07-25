@@ -86,26 +86,29 @@ jobs:
           echo "ARM sha256:   $SHA256_ARM"
           echo "Intel sha256: $SHA256_INTEL"
 
-          # Keep both layouts: root (same as doke/of) + Formula/ (modern brew)
-          mkdir -p Formula
-          FORMULAS=("${FORMULA_NAME}.rb" "Formula/${FORMULA_NAME}.rb")
-          for FORMULA in "${FORMULAS[@]}"; do
-            if [[ ! -f "$FORMULA" ]]; then
-              echo "Seeding ${FORMULA} from template."
-              cp "../homebrew/hui.rb" "$FORMULA"
-            fi
+          # Root-level only — same layout as doke.rb / of.rb.
+          # Do NOT also write Formula/hui.rb (duplicate class breaks discovery).
+          FORMULA="${FORMULA_NAME}.rb"
+          if [[ ! -f "$FORMULA" ]]; then
+            echo "Seeding ${FORMULA} from template."
+            cp "../homebrew/hui.rb" "$FORMULA"
+          fi
+          # Remove accidental Formula/ duplicate from older CI
+          if [[ -f "Formula/${FORMULA_NAME}.rb" ]]; then
+            git rm -f "Formula/${FORMULA_NAME}.rb" 2>/dev/null || rm -f "Formula/${FORMULA_NAME}.rb"
+            rmdir Formula 2>/dev/null || true
+          fi
 
-            sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
-            sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
-            sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
-            sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
-            sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
-            sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
-          done
+          sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
+          sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
+          sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
+          sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
+          sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
+          sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
 
           git config user.name "helsonlin"
           git config user.email "helsonlin@163.com"
-          git add "${FORMULAS[@]}"
+          git add "$FORMULA"
           if git diff --cached --quiet; then
             echo "No formula changes."
             exit 0

@@ -10,9 +10,14 @@
 
 ```bash
 brew tap helson-lin/tap
-# 已有 tap 时强制拉最新 formula（无需 untap）
-git -C "$(brew --repo helson-lin/tap)" pull
+
+# 已有 tap 时：强制同步到远程 main（不要 untap，以免卸掉 doke/of）
+git -C "$(brew --repo helson-lin/tap)" fetch origin
+git -C "$(brew --repo helson-lin/tap)" reset --hard origin/main
+ls "$(brew --repo helson-lin/tap)/hui.rb"   # 应能看到此文件
+
 brew install helson-lin/tap/hui
+hui --version
 ```
 
 PNG / PDF 需要本机已安装 **Google Chrome** 或 **Chromium**（`puppeteer-core` 驱动系统浏览器，无需再下载 Playwright 浏览器）。
