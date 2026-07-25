@@ -1,7 +1,8 @@
 # Homebrew formula template for helson-lin/homebrew-tap
+# Place at: Formula/hui.rb  (Homebrew discovers formulas under Formula/)
 # CI updates version / url / sha256 on each v*.*.* tag release.
 class Hui < Formula
-  desc "徽 — Markdown to PNG / PDF / HTML with multi-theme support"
+  desc "Markdown to PNG/PDF/HTML converter with multi-theme support"
   homepage "https://github.com/helson-lin/hui"
   version "v1.0.0"
   license "MIT"
@@ -9,10 +10,10 @@ class Hui < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/helson-lin/hui/releases/download/v1.0.0/hui-v1.0.0-darwin-arm64.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      sha256 "5f6099e74741da8372587003fea9482108643c2e8d5c054d09ad66626abf2907"
     else
       url "https://github.com/helson-lin/hui/releases/download/v1.0.0/hui-v1.0.0-darwin-amd64.tar.gz"
-      sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+      sha256 "a85d94435beb57478038f8f8f90ca1a7b182b23afe02e85a0ad05f884ea37eef"
     end
   end
 
@@ -31,8 +32,8 @@ class Hui < Formula
   end
 
   test do
-    (testpath/"sample.md").write("# hello\n\nfrom **hui**\n")
-    system "#{bin}/hui", "convert", "sample.md", "-f", "html", "-o", "sample.html"
-    assert_predicate testpath/"sample.html", :exist?
+    (testpath/"sample.md").write("# hello\n\nfrom hui\n")
+    system bin/"hui", "convert", "sample.md", "-f", "html", "-o", "sample.html"
+    assert_path_exists testpath/"sample.html"
   end
 end

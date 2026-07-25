@@ -86,7 +86,13 @@ jobs:
           echo "ARM sha256:   $SHA256_ARM"
           echo "Intel sha256: $SHA256_INTEL"
 
-          FORMULA="${FORMULA_NAME}.rb"
+          # Homebrew expects formulas under Formula/ (not repo root)
+          mkdir -p Formula
+          FORMULA="Formula/${FORMULA_NAME}.rb"
+          # migrate legacy root-level formula if present
+          if [[ ! -f "$FORMULA" && -f "${FORMULA_NAME}.rb" ]]; then
+            mv "${FORMULA_NAME}.rb" "$FORMULA"
+          fi
           if [[ ! -f "$FORMULA" ]]; then
             echo "Formula ${FORMULA} missing in tap; seeding from template."
             cp "../homebrew/hui.rb" "$FORMULA"
@@ -109,6 +115,8 @@ jobs:
           git config user.name "helsonlin"
           git config user.email "helsonlin@163.com"
           git add "$FORMULA"
+          # clean up legacy root formula if any leftovers
+          git rm -f "${FORMULA_NAME}.rb" 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No formula changes."
             exit 0

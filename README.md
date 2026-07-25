@@ -10,7 +10,17 @@
 
 ```bash
 brew tap helson-lin/tap
-brew install hui
+brew update
+brew install helson-lin/tap/hui
+# 或：brew install hui
+```
+
+若提示找不到 formula，先刷新 tap：
+
+```bash
+brew untap helson-lin/tap
+brew tap helson-lin/tap
+brew install helson-lin/tap/hui
 ```
 
 PNG / PDF 需要本机已安装 **Google Chrome** 或 **Chromium**（`puppeteer-core` 驱动系统浏览器，无需再下载 Playwright 浏览器）。
