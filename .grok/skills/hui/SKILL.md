@@ -134,6 +134,9 @@ Previews (if present in repo): `docs/themes/<id>.png`.
 ### Theme preview regen (docs)
 
 ```bash
+# English previews (README.md)
+hui convert examples/sample.en.md -t notion -f png -o docs/themes/en/notion.png --width 720 --scale 2
+# Chinese previews (README_ZH.md)
 hui convert examples/sample.md -t notion -f png -o docs/themes/notion.png --width 720 --scale 2
 ```
 

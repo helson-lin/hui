@@ -162,27 +162,27 @@ Aliases: `light` → github-light, `dark` → github-dark, `paper` → newspaper
 
 ### Theme previews
 
-Sample: [`examples/sample.md`](examples/sample.md). Generate with:
+English sample: [`examples/sample.en.md`](examples/sample.en.md). Generate with:
 
 ```bash
-hui convert examples/sample.md -t <theme-id> -f png -o docs/themes/<theme-id>.png
+hui convert examples/sample.en.md -t <theme-id> -f png -o docs/themes/en/<theme-id>.png
 ```
 
 | GitHub Light (`github-light`) | GitHub Dark (`github-dark`) |
 |:---:|:---:|
-| ![github-light](docs/themes/github-light.png) | ![github-dark](docs/themes/github-dark.png) |
+| ![github-light](docs/themes/en/github-light.png) | ![github-dark](docs/themes/en/github-dark.png) |
 
 | Notion (`notion`) | Academic (`academic`) |
 |:---:|:---:|
-| ![notion](docs/themes/notion.png) | ![academic](docs/themes/academic.png) |
+| ![notion](docs/themes/en/notion.png) | ![academic](docs/themes/en/academic.png) |
 
 | Terminal (`terminal`) | Minimal (`minimal`) |
 |:---:|:---:|
-| ![terminal](docs/themes/terminal.png) | ![minimal](docs/themes/minimal.png) |
+| ![terminal](docs/themes/en/terminal.png) | ![minimal](docs/themes/en/minimal.png) |
 
 | Solarized (`solarized`) | Newspaper (`newspaper`) |
 |:---:|:---:|
-| ![solarized](docs/themes/solarized.png) | ![newspaper](docs/themes/newspaper.png) |
+| ![solarized](docs/themes/en/solarized.png) | ![newspaper](docs/themes/en/newspaper.png) |
 
 ## Library usage
 
