@@ -232,12 +232,17 @@ Ship a [SKILL.md](skills/hui/SKILL.md) so **users** can install Hui into their c
 # Install skill globally for all supported agents
 npx skills add helson-lin/hui -g -y
 
-# Or project-only
+# Or project-only (current repo’s .agents/skills)
 npx skills add helson-lin/hui -y
 
 # List without installing
 npx skills add helson-lin/hui -l
 ```
+
+A successful install looks like:
+
+- Canonical path: `~/.agents/skills/hui` (with symlinks into Claude Code, Cursor, Codex, Grok Build, …)
+- **PromptScript** may print `Failed … does not support global skill installation` — that agent only supports **project** skills. Use `npx skills add helson-lin/hui -y` inside a PromptScript project (omit `-g`), or ignore if you don’t use PromptScript.
 
 Also install the CLI (brew / source) so the agent can run `hui`. The skill teaches convert/batch flags, themes, Chrome requirements, and anti-patterns so the agent shells out to `hui` instead of re-implementing export.
 

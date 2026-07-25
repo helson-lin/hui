@@ -30,7 +30,7 @@ Two pieces (skill + CLI):
 # 1) Skill — install for all supported agents (global)
 npx skills add helson-lin/hui -g -y
 
-# Project-only (current repo):
+# Project-only (current repo’s .agents/skills):
 npx skills add helson-lin/hui -y
 
 # List skill without installing:
@@ -41,6 +41,12 @@ brew tap helson-lin/tap && brew install helson-lin/tap/hui
 # or from source:
 # git clone https://github.com/helson-lin/hui && cd hui && npm i && npm run build && npm link
 ```
+
+**PromptScript:** does not support **global** skill install. If install prints  
+`PromptScript does not support global skill installation`, that is expected with `-g`.  
+Use project install (`-y` without `-g`) inside a PromptScript project, or ignore if unused.
+
+Canonical install path: `~/.agents/skills/hui` (other agents symlink or mirror from there).
 
 PNG/PDF also need **Google Chrome** or **Chromium** on the machine.
 

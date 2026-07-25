@@ -232,12 +232,17 @@ await convertMany(jobs, {
 # 全局安装到本机已支持的 Agent
 npx skills add helson-lin/hui -g -y
 
-# 仅当前项目
+# 仅当前项目（写入项目 .agents/skills）
 npx skills add helson-lin/hui -y
 
 # 只查看、不安装
 npx skills add helson-lin/hui -l
 ```
+
+安装成功时大致会看到：
+
+- 规范路径：`~/.agents/skills/hui`（并软链到 Claude Code、Cursor、Codex、Grok Build 等）
+- **PromptScript** 可能报 `Failed … does not support global skill installation`：该 Agent **不支持全局 skill**。若要用 PromptScript，在项目目录执行 `npx skills add helson-lin/hui -y`（不要加 `-g`）；不用 PromptScript 可忽略该错误。
 
 同时安装 CLI（brew / 源码），Agent 才能执行 `hui`。Skill 说明转换/批量参数、主题、Chrome 依赖与反模式，让 Agent 直接调用 `hui`，而不是重写导出逻辑。
 
