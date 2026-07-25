@@ -224,6 +224,16 @@ await convertMany(jobs, {
 })
 ```
 
+## Agent Skill
+
+方便 AI（Grok / Claude / Codex 等）调用 Hui：
+
+- 本仓库：[`.grok/skills/hui/SKILL.md`](.grok/skills/hui/SKILL.md)
+- Grok 斜杠：`/hui`
+- 可复制到用户技能目录：`~/.agents/skills/hui/SKILL.md`
+
+Skill 内含命令解析、单文件/批量转换、主题、Chrome 依赖与反模式，让 Agent 直接调用 `hui`，而不是自己重写导出逻辑。
+
 ## 技术栈
 
 - Node.js ≥ 18 + TypeScript

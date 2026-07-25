@@ -224,6 +224,16 @@ await convertMany(jobs, {
 })
 ```
 
+## Agent skill
+
+For AI agents (Grok / Claude / Codex, etc.), load the Hui skill:
+
+- In this repo: [`.grok/skills/hui/SKILL.md`](.grok/skills/hui/SKILL.md)
+- Slash (Grok): `/hui`
+- Copy into a user skill dir if needed: `~/.agents/skills/hui/SKILL.md`
+
+The skill documents binary resolution, convert/batch flags, themes, Chrome requirements, and anti-patterns so agents shell out to `hui` instead of re-implementing export.
+
 ## Stack
 
 - Node.js ≥ 18 + TypeScript
