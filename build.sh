@@ -62,13 +62,21 @@ for entry in "${TARGETS[@]}"; do
     --output "$out_dir/${bin_name}" \
     --compress GZip
 
-  # Ad-hoc codesign on macOS hosts (required for arm64)
-  if [[ "$platform" == darwin-* ]] && command -v codesign >/dev/null 2>&1; then
-    echo "    codesign (ad-hoc) $bin_name"
-    codesign --force --sign - "$out_dir/${bin_name}"
-  elif [[ "$platform" == darwin-* ]]; then
-    echo "    WARNING: not on macOS — darwin binary will be UNSIGNED"
-    echo "    macOS users will see 'zsh: killed' unless brew formula re-signs on install"
+  # Ad-hoc codesign on macOS hosts (required for arm64; else "zsh: killed")
+  if [[ "$platform" == darwin-* ]]; then
+    if command -v codesign >/dev/null 2>&1; then
+      bash "$ROOT/scripts/macos-codesign.sh" "$out_dir/${bin_name}"
+      # Runtime smoke test on native arch only (avoid Rosetta requirement for cross targets)
+      host_arch="$(uname -m)"
+      if { [[ "$platform" == "darwin-arm64" && "$host_arch" == "arm64" ]] || \
+           [[ "$platform" == "darwin-amd64" && "$host_arch" == "x86_64" ]]; }; then
+        echo "    smoke: $out_dir/${bin_name} --version"
+        "$out_dir/${bin_name}" --version
+      fi
+    else
+      echo "    WARNING: not on macOS — darwin binary will be UNSIGNED"
+      echo "    macOS users will see 'zsh: killed' unless brew formula re-signs on install"
+    fi
   fi
 
   archive="release/hui-${TAG}-${platform}"

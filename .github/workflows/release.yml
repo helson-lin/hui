@@ -102,7 +102,7 @@ jobs:
           npm run build
           HUI_VERSION="${TAG#v}" node scripts/bundle.mjs
 
-      - name: Package darwin arm64 + amd64 (codesign)
+      - name: Package darwin arm64 + amd64 (codesign + smoke)
         run: |
           set -euo pipefail
           mkdir -p release
@@ -110,6 +110,7 @@ jobs:
             "node20-macos-arm64|darwin-arm64|hui"
             "node20-macos-x64|darwin-amd64|hui"
           )
+          host_arch="$(uname -m)"
           for entry in "${TARGETS[@]}"; do
             IFS='|' read -r pkg_target platform bin_name <<<"$entry"
             out_dir="release/staging-${platform}"
@@ -119,9 +120,17 @@ jobs:
               --targets "$pkg_target" \
               --output "$out_dir/${bin_name}" \
               --compress GZip
-            # Ad-hoc sign so macOS does not SIGKILL on launch
-            codesign --force --sign - "$out_dir/${bin_name}"
-            codesign --verify --verbose "$out_dir/${bin_name}" || true
+            # Ad-hoc sign so macOS does not SIGKILL arm64 on launch ("zsh: killed")
+            bash scripts/macos-codesign.sh "$out_dir/${bin_name}"
+            # Runtime smoke on native arch (fails the job if still killed)
+            if { [[ "$platform" == "darwin-arm64" && "$host_arch" == "arm64" ]] || \
+                 [[ "$platform" == "darwin-amd64" && "$host_arch" == "x86_64" ]]; }; then
+              echo "Smoke test: $out_dir/${bin_name} --version"
+              "$out_dir/${bin_name}" --version
+              "$out_dir/${bin_name}" --help >/dev/null
+            else
+              echo "Skip runtime smoke for $platform on host $host_arch (cross target)"
+            fi
             tar -czf "release/hui-${TAG}-${platform}.tar.gz" -C "$out_dir" "$bin_name"
             rm -rf "$out_dir"
           done
@@ -199,37 +208,34 @@ jobs:
 
           SHA256_ARM=$(sha256sum "../release/hui-${TAG}-darwin-arm64.tar.gz" | awk '{print $1}')
           SHA256_INTEL=$(sha256sum "../release/hui-${TAG}-darwin-amd64.tar.gz" | awk '{print $1}')
+          VERSION="${TAG#v}"
           echo "ARM sha256:   $SHA256_ARM"
           echo "Intel sha256: $SHA256_INTEL"
+          echo "Version:      $VERSION"
 
           # Root-level only (same as doke/of). Never also write Formula/hui.rb.
           FORMULA="${FORMULA_NAME}.rb"
-          if [[ ! -f "$FORMULA" ]]; then
-            cp "../homebrew/hui.rb" "$FORMULA"
-          fi
+          # Always re-seed from template so codesign / smoke install block stays current
+          cp "../homebrew/hui.rb" "$FORMULA"
           if [[ -f "Formula/${FORMULA_NAME}.rb" ]]; then
             git rm -f "Formula/${FORMULA_NAME}.rb" 2>/dev/null || rm -f "Formula/${FORMULA_NAME}.rb"
             rmdir Formula 2>/dev/null || true
           fi
 
-          # Ensure install block has codesign (idempotent via template replace of version/url/sha)
-          sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
+          sed -i "s|version \".*\"|version \"${VERSION}\"|" "$FORMULA"
           sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
           sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
           sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
           sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
           sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
 
-          # Ensure codesign snippet exists in formula (for older seeded files)
           if ! grep -q 'codesign' "$FORMULA"; then
-            echo "Injecting codesign into install block"
-            # Prefer re-seeding from template then re-applying version/url/sha
-            cp "../homebrew/hui.rb" "$FORMULA"
-            sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
-            sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
-            sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
-            sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
-            sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
+            echo "error: formula missing codesign after template seed" >&2
+            exit 1
+          fi
+          if ! grep -q -- '--version' "$FORMULA"; then
+            echo "error: formula missing install-time smoke --version" >&2
+            exit 1
           fi
 
           git config user.name "helsonlin"

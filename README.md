@@ -19,16 +19,19 @@ brew reinstall helson-lin/tap/hui
 hui --version
 ```
 
-若出现 `zsh: killed`（macOS 杀掉未签名的 arm64 二进制）：
+若出现 `zsh: killed`（macOS 对未签名 / 签名损坏的 arm64 二进制直接 SIGKILL）：
 
 ```bash
-# 方案 A：重装（formula 会在 install 时 ad-hoc codesign）
-git -C "$(brew --repo helson-lin/tap)" pull
+# 方案 A：同步 tap 后重装（install 阶段会 ad-hoc codesign + 跑 hui --version）
+git -C "$(brew --repo helson-lin/tap)" fetch origin
+git -C "$(brew --repo helson-lin/tap)" reset --hard origin/main
 brew reinstall helson-lin/tap/hui
+hui --version
 
 # 方案 B：手动签名当前二进制
-codesign --force --sign - "$(brew --prefix)/bin/hui"
 xattr -cr "$(brew --prefix)/bin/hui"
+codesign --force --sign - --timestamp=none \
+  --identifier com.helsonlin.hui "$(brew --prefix)/bin/hui"
 hui --version
 ```
 
