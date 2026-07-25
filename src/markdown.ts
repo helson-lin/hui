@@ -42,18 +42,26 @@ const marked = new Marked({
 marked.use({
   renderer: {
     code({ text, lang }: { text: string; lang?: string }) {
-      const language = (lang || '').trim().split(/\s+/)[0]
-      let highlighted = text
+      // marked may leave trailing newlines; normalize for stable highlight
+      const source = text.replace(/\n$/, '')
+      const language = (lang || '').trim().split(/\s+/)[0]?.toLowerCase() || ''
+      let highlighted: string
       try {
         if (language && hljs.getLanguage(language)) {
-          highlighted = hljs.highlight(text, { language }).value
+          highlighted = hljs.highlight(source, {
+            language,
+            ignoreIllegals: true,
+          }).value
+        } else if (language) {
+          // Unknown fence lang: still escape, don't auto-guess wrong grammar
+          highlighted = escapeHtml(source)
         } else {
-          highlighted = hljs.highlightAuto(text).value
+          highlighted = hljs.highlightAuto(source).value
         }
       } catch {
-        highlighted = escapeHtml(text)
+        highlighted = escapeHtml(source)
       }
-      const langClass = language ? ` language-${language}` : ''
+      const langClass = language ? ` language-${escapeAttr(language)}` : ''
       return `<pre><code class="hljs${langClass}">${highlighted}</code></pre>\n`
     },
   },
@@ -65,6 +73,10 @@ function escapeHtml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
+}
+
+function escapeAttr(value: string): string {
+  return value.replaceAll(/[^a-zA-Z0-9_+#-]/g, '')
 }
 
 export function renderMarkdown(source: string): string {

@@ -119,18 +119,35 @@ const SHARED = `
 .md-body th { font-weight: 650; }
 .md-body pre {
   padding: 1em 1.1em;
-  overflow-x: auto;
+  /* PNG/PDF capture cannot show horizontal scroll; wrap long lines instead. */
+  overflow-x: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
   border-radius: 8px;
-  font-size: 0.9em;
+  font-size: 0.85em;
   line-height: 1.55;
+  tab-size: 2;
+}
+.md-body pre code {
+  display: block;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+  font-size: inherit;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 .md-body code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK SC", monospace;
   font-size: 0.9em;
 }
 .md-body :not(pre) > code {
   padding: 0.15em 0.4em;
   border-radius: 4px;
+  white-space: break-spaces;
+  word-break: break-word;
 }
 .md-body blockquote {
   margin-left: 0;

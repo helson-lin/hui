@@ -64,10 +64,17 @@ export function buildHtmlDocument(options: BuildDocumentOptions): string {
       }
     }
     ${css}
-    .hljs { display: block; overflow-x: auto; }
+    .hljs {
+      display: block;
+      overflow-x: visible;
+      white-space: inherit;
+      word-break: inherit;
+      overflow-wrap: inherit;
+    }
     .hljs-comment, .hljs-quote { opacity: 0.7; font-style: italic; }
     .hljs-keyword, .hljs-selector-tag, .hljs-literal { font-weight: 600; }
     .hljs-string, .hljs-attr { opacity: 0.95; }
+    .hljs-number, .hljs-built_in { font-weight: 500; }
   </style>
 </head>
 <body>
