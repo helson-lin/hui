@@ -1,5 +1,7 @@
 # 徽 (Hui) CLI
 
+[English](README_EN.md) | 中文
+
 **徽** — 将 Markdown 快速转换为 **PNG / PDF / HTML**，支持多主题切换。
 
 主题体系与 [md2png](../md2png) Web 版一致：GitHub Light/Dark、Notion、Academic、Terminal、Minimal、Solarized、Newspaper。
