@@ -82,7 +82,9 @@ git push origin v1.0.0
 |--------|------|
 | `TOKEN` | GitHub PAT：写本仓库 Release + 推送 `homebrew-tap` |
 
-首次使用前把 `homebrew/hui.rb` 拷到 tap 仓库根目录（或让 CI 在缺失时自动 seed）。## 用法
+首次使用前把 `homebrew/hui.rb` 拷到 tap 仓库根目录（或让 CI 在缺失时自动 seed）。
+
+## 用法
 
 ```bash
 # 转 HTML（默认）
@@ -155,6 +157,30 @@ hui themes --json
 | `newspaper` | Newspaper | 编辑部风格 |
 
 别名：`light` → github-light，`dark` → github-dark，`paper` → newspaper。
+
+### 主题效果
+
+示例文档：[`examples/sample.md`](examples/sample.md)。生成命令：
+
+```bash
+hui convert examples/sample.md -t <theme-id> -f png -o docs/themes/<theme-id>.png
+```
+
+| GitHub Light (`github-light`) | GitHub Dark (`github-dark`) |
+|:---:|:---:|
+| ![github-light](docs/themes/github-light.png) | ![github-dark](docs/themes/github-dark.png) |
+
+| Notion (`notion`) | Academic (`academic`) |
+|:---:|:---:|
+| ![notion](docs/themes/notion.png) | ![academic](docs/themes/academic.png) |
+
+| Terminal (`terminal`) | Minimal (`minimal`) |
+|:---:|:---:|
+| ![terminal](docs/themes/terminal.png) | ![minimal](docs/themes/minimal.png) |
+
+| Solarized (`solarized`) | Newspaper (`newspaper`) |
+|:---:|:---:|
+| ![solarized](docs/themes/solarized.png) | ![newspaper](docs/themes/newspaper.png) |
 
 ## 作为库使用
 
