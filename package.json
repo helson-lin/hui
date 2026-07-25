@@ -1,0 +1,74 @@
+{
+  "name": "hui",
+  "version": "1.0.0",
+  "description": "徽 CLI — convert Markdown to PNG / PDF / HTML with multi-theme support",
+  "type": "module",
+  "bin": {
+    "hui": "./bin/hui.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "homebrew"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "bundle": "node scripts/bundle.mjs",
+    "build:binary": "bash build.sh",
+    "dev": "tsx src/cli.ts",
+    "hui": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "pkg": {
+    "outputPath": "release",
+    "targets": [
+      "node20-macos-arm64",
+      "node20-macos-x64",
+      "node20-linux-x64",
+      "node20-linux-arm64",
+      "node20-win-x64"
+    ]
+  },
+  "keywords": [
+    "markdown",
+    "md",
+    "png",
+    "pdf",
+    "html",
+    "cli",
+    "theme",
+    "hui",
+    "export",
+    "homebrew"
+  ],
+  "author": "helson-lin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/helson-lin/hui.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.12",
+    "puppeteer-core": "^24.43.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.12",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

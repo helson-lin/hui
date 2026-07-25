@@ -1,0 +1,117 @@
+name: Release
+
+# Publish multi-platform binaries + update Homebrew tap on version tags
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build as (e.g. v1.0.0). Creates release for that name.'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Extract tag name
+        id: tag_name
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build binaries
+        run: bash build.sh "${{ env.TAG }}"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ env.TAG }}
+          files: |
+            release/hui-*.tar.gz
+            release/hui-*.zip
+            release/SHA256SUMS
+          generate_release_notes: true
+        env:
+          # Prefer PAT (cross-repo homebrew); fall back to job token for same-repo release
+          GITHUB_TOKEN: ${{ secrets.TOKEN != '' && secrets.TOKEN || github.token }}
+
+      - name: Update Homebrew Formula
+        env:
+          # PAT with repo scope for {owner}/homebrew-tap (same as doke)
+          TOKEN: ${{ secrets.TOKEN }}
+          TAG: ${{ env.TAG }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TOKEN:-}" ]]; then
+            echo "secrets.TOKEN is not set; skip Homebrew tap update."
+            exit 0
+          fi
+
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          FORMULA_NAME="hui"
+          TAP_REPO="${OWNER}/homebrew-tap"
+          RELEASE_BASE="https://github.com/${OWNER}/${REPO_NAME}/releases/download/${TAG}"
+
+          git clone "https://github.com/${TAP_REPO}.git" homebrew-tap
+          cd homebrew-tap
+
+          ls -l ../release
+
+          SHA256_ARM=$(shasum -a 256 "../release/hui-${TAG}-darwin-arm64.tar.gz" | awk '{print $1}')
+          SHA256_INTEL=$(shasum -a 256 "../release/hui-${TAG}-darwin-amd64.tar.gz" | awk '{print $1}')
+          echo "ARM sha256:   $SHA256_ARM"
+          echo "Intel sha256: $SHA256_INTEL"
+
+          FORMULA="${FORMULA_NAME}.rb"
+          if [[ ! -f "$FORMULA" ]]; then
+            echo "Formula ${FORMULA} missing in tap; seeding from template."
+            cp "../homebrew/hui.rb" "$FORMULA"
+          fi
+
+          # Update version
+          sed -i "s|version \".*\"|version \"${TAG}\"|" "$FORMULA"
+
+          # Update download URLs (darwin arm + intel)
+          sed -i "s|url \".*-darwin-arm64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-arm64.tar.gz\"|" "$FORMULA"
+          sed -i "s|url \".*-darwin-amd64.tar.gz\"|url \"${RELEASE_BASE}/hui-${TAG}-darwin-amd64.tar.gz\"|" "$FORMULA"
+
+          # Replace sha256 in order: first ARM, then Intel (same pattern as doke)
+          sed -i "0,/sha256 \".*\"/s//sha256 \"${SHA256_ARM}\"/" "$FORMULA"
+          sed -i "0,/sha256 \".*\"/! s/sha256 \".*\"/sha256 \"${SHA256_INTEL}\"/" "$FORMULA"
+
+          # Normalize homepage / release host to this repository
+          sed -i "s|https://github.com/[^/]*/hui|https://github.com/${OWNER}/${REPO_NAME}|g" "$FORMULA"
+
+          git config user.name "helsonlin"
+          git config user.email "helsonlin@163.com"
+          git add "$FORMULA"
+          if git diff --cached --quiet; then
+            echo "No formula changes."
+            exit 0
+          fi
+          git commit -m "Update ${FORMULA_NAME} to ${TAG}"
+          git push "https://${TOKEN}@github.com/${TAP_REPO}.git" HEAD:main
